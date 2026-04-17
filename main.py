@@ -67,10 +67,9 @@ def mpSpacePosition(hand):
 
 # region PYNPUT CLICK
 def isClicking(hand):
-    if ((abs(hand.landmark[INDEX_FINGER_TIP].x - hand.landmark[THUMB_TIP].x) < 0.05) 
-        and (abs(hand.landmark[INDEX_FINGER_TIP].y - hand.landmark[THUMB_TIP].y) < 0.05)):  
-        return True  
-    return False
+    dist_x = abs(hand.landmark[INDEX_FINGER_TIP].x - hand.landmark[THUMB_TIP].x)
+    dist_y = abs(hand.landmark[INDEX_FINGER_TIP].y - hand.landmark[THUMB_TIP].y)
+    return dist_x < 0.05 and dist_y < 0.05
 
 def mouseClick(nb_click):
     mouse.click(Button.left, nb_click)
