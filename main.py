@@ -9,6 +9,7 @@ import showLandmarks as slm
 SMOOTHING = 0.6 # lower = smoother
 THUMB_TIP = 4
 INDEX_FINGER_TIP = 8
+MIDDLE_FINGER_TIP = 12
 
 IMAGE_PAUSED = cv2.imread("PTOUNPAUSE.png")
 is_paused = False
@@ -69,6 +70,11 @@ def mpSpacePosition(hand):
 def isClicking(hand):
     dist_x = abs(hand.landmark[INDEX_FINGER_TIP].x - hand.landmark[THUMB_TIP].x)
     dist_y = abs(hand.landmark[INDEX_FINGER_TIP].y - hand.landmark[THUMB_TIP].y)
+    return dist_x < 0.05 and dist_y < 0.05
+
+def isRightClick(hand):
+    dist_x = abs(hand.landmark[MIDDLE_FINGER_TIP].x - hand.landmark[THUMB_TIP].x)
+    dist_y = abs(hand.landmark[MIDDLE_FINGER_TIP].y - hand.landmark[THUMB_TIP].y)
     return dist_x < 0.05 and dist_y < 0.05
 
 def mouseClick(nb_click):
@@ -141,6 +147,10 @@ while True:
         x_sr, y_sr = convertCoordsToScreenResolution(x_mp, y_mp)
         x_sm, y_sm = smoothMouse(x_sr, y_sr)
         moveMouseToPosition(x_sm, y_sm)
+
+        if isRightClick(hand):
+            mouse.click(Button.right, 1)
+
         if isClicking(hand):
             mousePress()
         else:
