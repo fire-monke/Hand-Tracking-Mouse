@@ -15,10 +15,11 @@ IMAGE_PAUSED = cv2.imread("PTOUNPAUSE.png")
 is_paused = False
 was_paused = False
 
-CLICK_THRESHOLD = 0.3
-DOUBLE_CLICK_THRESHOLD = 0.4
-is_pressed = False
-click_start = 0
+CLICK_THRESHOLD = 0.25
+DOUBLE_CLICK_THRESHOLD = 0.6
+pinch_start_time = 0
+pinching = False
+dragging = False
 
 mouse = Controller()
 prev_x, prev_y = 0, 0
@@ -76,23 +77,6 @@ def isRightClick(hand):
     dist_x = abs(hand.landmark[MIDDLE_FINGER_TIP].x - hand.landmark[THUMB_TIP].x)
     dist_y = abs(hand.landmark[MIDDLE_FINGER_TIP].y - hand.landmark[THUMB_TIP].y)
     return dist_x < 0.05 and dist_y < 0.05
-
-def mouseClick(nb_click):
-    mouse.click(Button.left, nb_click)
-
-def mousePress():
-    global is_pressed, click_start
-    if not is_pressed:
-        mouse.press(Button.left)
-        is_pressed = True
-        click_start = time.time()
-
-def mouseRelease():
-    global is_pressed, click_start
-    if is_pressed:
-        mouse.release(Button.left)
-        is_pressed = False
-        click_start = 0
 # end region
 
 # region PYNPUT PAUSE
@@ -136,10 +120,7 @@ while True:
 
     rgb.flags.writeable = True
     # ===== HANDS =====
-    if not h_results.multi_hand_landmarks:
-        if is_pressed:
-            is_pressed = False
-    else:
+    if h_results.multi_hand_landmarks:
         for hand in h_results.multi_hand_landmarks:
             slm.handMarkMap(image, hand)
 
@@ -148,17 +129,37 @@ while True:
         x_sm, y_sm = smoothMouse(x_sr, y_sr)
         moveMouseToPosition(x_sm, y_sm)
 
-        if isRightClick(hand):
+        if not isClicking(hand) and isRightClick(hand):
             mouse.click(Button.right, 1)
 
         if isClicking(hand):
-            mousePress()
+
+            if not pinching:
+                pinch_start_time = time.time()
+                pinching = True
+
+            duration = time.time() - pinch_start_time
+
+            if duration > DOUBLE_CLICK_THRESHOLD and not dragging:
+                mouse.press(Button.left)
+                dragging = True
+
         else:
-            if is_pressed:
-                mouseRelease()
-                duration = time.time() - click_start
-                if duration <= CLICK_THRESHOLD:
-                    mouseClick(1)
+            if pinching:
+                duration = time.time() - pinch_start_time
+
+                if dragging:
+                    mouse.release(Button.left)
+                    dragging = False
+
+                else:
+                    if duration < CLICK_THRESHOLD:
+                        mouse.click(Button.left, 1)
+
+                    elif duration < DOUBLE_CLICK_THRESHOLD:
+                        mouse.click(Button.left, 2)
+
+                pinching = False
 
     cv2.imshow("Camera", image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
